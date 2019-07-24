@@ -10,7 +10,7 @@ app.get('/', function (req, res) {
 	res.send(players);
 });
 
-server.listen(5000, function () {
+server.listen(process.env.PORT || 5000, function () {
 	console.log('Starting server on port 5000.')
 });
 
