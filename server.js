@@ -6,8 +6,10 @@ var app = express();
 var server = http.Server(app);
 var io = socket(server);
 
-app.get('/', function (req, res) {
-	res.send(players);
+var rooms = [];
+
+app.get('/rooms', function (req, res) {
+	res.send(rooms);
 });
 
 server.listen(process.env.PORT || 5000, function () {
@@ -15,11 +17,16 @@ server.listen(process.env.PORT || 5000, function () {
 });
 
 io.on('connection', function (socket) {
-    console.log('connected: ' + socket.id);
+    console.log('Socket connected: ' + socket.id);
     
-	socket.on('send_message', function (message) {
-        console.log(socket.id + ': ' + message);
+    socket.on('create_room', function (roomname) {
+        socket.join(roomname);
+        rooms.push(roomname);
+        io.emit('room_created', roomname);
+        console.log('Room created: ' + roomname);
+    });
 
-		socket.broadcast.emit('on_message', message);
-	});
+    socket.on('join_room', function (roomname) {
+        socket.join(roomname);
+    });
 });
