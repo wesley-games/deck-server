@@ -6,10 +6,11 @@ var app = express();
 var server = http.Server(app);
 var io = socket(server);
 
-var rooms = [];
+// armazena cada room criada e os clients conectadas nelas
+var rooms = {};
 
 app.get('/rooms', function (req, res) {
-	res.send(rooms);
+	res.send(JSON.stringify(rooms) + '\n');
 });
 
 server.listen(process.env.PORT || 5000, function () {
@@ -19,14 +20,14 @@ server.listen(process.env.PORT || 5000, function () {
 io.on('connection', function (socket) {
     console.log('Socket connected: ' + socket.id);
     
-    socket.on('create_room', function (roomname) {
-        socket.join(roomname);
-        rooms.push(roomname);
-        io.emit('room_created', roomname);
-        console.log('Room created: ' + roomname);
-    });
-
     socket.on('join_room', function (roomname) {
+        if (!rooms.hasOwnProperty(roomname)) {
+            rooms[roomname] = [];
+            io.emit('room_created', roomname);
+            console.log('Room created: ' + roomname);
+        }
         socket.join(roomname);
+        rooms[roomname].push(socket.id);
+        console.log(socket.id + ' joined the room ' + roomname);
     });
 });
