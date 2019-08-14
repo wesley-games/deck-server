@@ -1,6 +1,7 @@
 var express = require('express');
 var http = require('http');
 var socket = require('socket.io');
+var Game = require('./game');
 
 var app = express();
 var server = http.Server(app);
@@ -9,8 +10,28 @@ var io = socket(server);
 // armazena cada room criada e os clients conectadas nelas
 var rooms = {};
 
+app.use(express.json());
+app.use(express.urlencoded({
+    extended: true
+}));
+
+app.get('/game', function (req, res) {
+    let game = new Game('wesley', 'midiã');
+    res.json(game);
+});
+
 app.get('/rooms', function (req, res) {
-    res.send(JSON.stringify(rooms) + '\n');
+    res.json(rooms);
+});
+
+app.post('/rooms', function (req, res) {
+    let body = req.body;
+    res.json(req.body);
+});
+
+app.get('/rooms/:roomname/game', function (req, res) {
+    let roomname = req.params.roomname;
+    res.json(roomname);
 });
 
 server.listen(process.env.PORT || 5000, function () {
