@@ -16,8 +16,13 @@ app.use(express.urlencoded({
 }));
 
 app.get('/game', function (req, res) {
-    let game = new Game('wesley', 'midiã');
+    let game = new Game.Game('wesley', 'midiã');
     res.json(game);
+});
+
+app.get('/deck', function (req, res) {
+    let deck = new Game.Deck();
+    res.json(deck);
 });
 
 app.get('/rooms', function (req, res) {
