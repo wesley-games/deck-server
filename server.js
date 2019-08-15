@@ -22,11 +22,14 @@ io.on('connection', function (socket) {
 
     socket.on('join_room', function (roomname) {
         if (!rooms.hasOwnProperty(roomname)) {
-            rooms[roomname] = [];
+            rooms[roomname] = { players : [] };
             io.emit('created_room', roomname);
         }
+        rooms[roomname].players.push(socket.id);
         socket.join(roomname);
-        rooms[roomname].push(socket.id);
         io.emit('joined_room', socket.id);
+        if (rooms[roomname].players.length === 2) {
+            rooms[roomname].game = new Game(...[rooms[roomname].players]);
+        }
     });
 });
