@@ -15,28 +15,8 @@ app.use(express.urlencoded({
     extended: true
 }));
 
-app.get('/game', function (req, res) {
-    let game = new Game.Game('wesley', 'midiã');
-    res.json(game);
-});
-
-app.get('/deck', function (req, res) {
-    let deck = new Game.Deck();
-    res.json(deck);
-});
-
 app.get('/rooms', function (req, res) {
     res.json(rooms);
-});
-
-app.post('/rooms', function (req, res) {
-    let body = req.body;
-    res.json(req.body);
-});
-
-app.get('/rooms/:roomname/game', function (req, res) {
-    let roomname = req.params.roomname;
-    res.json(roomname);
 });
 
 server.listen(process.env.PORT || 5000, function () {
@@ -44,18 +24,43 @@ server.listen(process.env.PORT || 5000, function () {
 });
 
 io.on('connection', function (socket) {
-    console.log('Socket connected: ' + socket.id);
+    console.log('Connected socket: ' + socket.id);
 
+    // Events for room
     socket.on('join_room', function (roomname) {
         if (!rooms.hasOwnProperty(roomname)) {
             rooms[roomname] = { players : [] };
             io.emit('created_room', roomname);
+            console.log('Created room: ' + roomname);
         }
         rooms[roomname].players.push(socket.id);
         socket.join(roomname);
         io.emit('joined_room', socket.id);
+        console.log('Joined room: ' + socket.id + ' - ' + roomname);
         if (rooms[roomname].players.length === 2) {
-            rooms[roomname].game = new Game(...[rooms[roomname].players]);
+            rooms[roomname].deck = new Game.Deck();
+        }
+    });
+
+    // Events for game
+    socket.on('draw_card', function (data) {
+        for (var room in rooms) {
+            if(rooms[room].players.includes(socket.id)) {
+                let card = rooms[room].deck.drawCard();
+                io.to(room).emit('drawn_card', card);
+                console.log('Drawn card: ' + card);
+                break;
+            }
+        }
+    });
+
+    socket.on('play_card', function (card) {
+        for (var room in rooms) {
+            if(rooms[room].players.includes(socket.id)) {
+                io.to(room).emit('played_card', card);
+                console.log('Played card: ' + card);
+                break;
+            }
         }
     });
 });
