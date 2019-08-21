@@ -27,25 +27,28 @@ io.on('connection', function (socket) {
     console.log('Connected socket: ' + socket.id);
 
     // Events for room
-    socket.on('join_room', function (roomname) {
-        if (!rooms.hasOwnProperty(roomname)) {
-            rooms[roomname] = { players : [] };
-            io.emit('created_room', roomname);
-            console.log('Created room: ' + roomname);
+    socket.on('join_room', function (room) {
+        if (!rooms.hasOwnProperty(room)) {
+            rooms[room] = {
+                players: []
+            };
+            io.emit('created_room', room);
+            console.log('Created room: ' + room);
         }
-        rooms[roomname].players.push(socket.id);
-        socket.join(roomname);
+        rooms[room].players.push(socket.id);
+        socket.join(room);
         io.emit('joined_room', socket.id);
-        console.log('Joined room: ' + socket.id + ' - ' + roomname);
-        if (rooms[roomname].players.length === 2) {
-            rooms[roomname].deck = new Game.Deck();
+        console.log('Joined room: ' + socket.id + ' - ' + room);
+        if (rooms[room].players.length === 2) {
+            rooms[room].deck = new Game.Deck();
+            io.to(room).emit('started_game');
         }
     });
 
     // Events for game
     socket.on('draw_card', function (data) {
         for (var room in rooms) {
-            if(rooms[room].players.includes(socket.id)) {
+            if (rooms[room].players.includes(socket.id)) {
                 let card = rooms[room].deck.drawCard();
                 io.to(room).emit('drawn_card', card);
                 console.log('Drawn card: ' + card);
@@ -56,7 +59,7 @@ io.on('connection', function (socket) {
 
     socket.on('play_card', function (card) {
         for (var room in rooms) {
-            if(rooms[room].players.includes(socket.id)) {
+            if (rooms[room].players.includes(socket.id)) {
                 io.to(room).emit('played_card', card);
                 console.log('Played card: ' + card);
                 break;
