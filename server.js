@@ -45,16 +45,14 @@ io.on('connection', function (socket) {
         }
     });
 
-    // Events for game
+    // EVENTS FOR GAME
     socket.on('draw_card', function (data) {
-        for (var room in rooms) {
-            if (rooms[room].players.includes(socket.id)) {
-                let card = rooms[room].deck.drawCard();
-                io.to(room).emit('drawn_card', card);
-                console.log('Drawn card: ' + card);
-                break;
-            }
-        }
+        let room = findRoomByPlayer(socket.id);
+        let card = rooms[room].deck.drawCard();
+
+        socket.emit('drawn_card', card);
+        socket.to(room).emit('drawn_enemy_card');
+        console.log('Drawn card: ' + card);
     });
 
     socket.on('play_card', function (card) {
@@ -67,3 +65,12 @@ io.on('connection', function (socket) {
         }
     });
 });
+
+// UTIL FUNCTIONS
+var findRoomByPlayer = function (player) {
+    for (var room in rooms) {
+        if (rooms[room].players.includes(player)) {
+            return room;
+        }
+    }
+}
