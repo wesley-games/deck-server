@@ -11,17 +11,11 @@ var io = socket(server);
 var rooms = {};
 
 app.use(express.json());
-app.use(express.urlencoded({
-    extended: true
-}));
+app.use(express.urlencoded({ extended: true }));
 
-app.get('/rooms', function (req, res) {
-    res.json(rooms);
-});
+app.get('/rooms', (req, res) => res.json(rooms));
 
-server.listen(process.env.PORT || 5000, function () {
-    console.log('Starting server on port 5000.')
-});
+server.listen(process.env.PORT || 5000, () => console.log('Starting server on port 5000.'));
 
 io.on('connection', function (socket) {
     console.log('Connected socket: ' + socket.id);
@@ -29,9 +23,7 @@ io.on('connection', function (socket) {
     // Events for room
     socket.on('join_room', function (room) {
         if (!rooms.hasOwnProperty(room)) {
-            rooms[room] = {
-                players: []
-            };
+            rooms[room] = { players: [] };
             io.emit('created_room', room);
             console.log('Created room: ' + room);
         }
@@ -39,9 +31,13 @@ io.on('connection', function (socket) {
         socket.join(room);
         io.emit('joined_room', socket.id);
         console.log('Joined room: ' + socket.id + ' - ' + room);
+
         if (rooms[room].players.length === 2) {
             rooms[room].deck = new Game.Deck();
             io.to(room).emit('started_game');
+
+            let randomPlayer = getRandomPlayer(room);
+            io.sockets.connected[randomPlayer].emit('start_player');
         }
     });
 
@@ -56,13 +52,10 @@ io.on('connection', function (socket) {
     });
 
     socket.on('play_card', function (card) {
-        for (var room in rooms) {
-            if (rooms[room].players.includes(socket.id)) {
-                io.to(room).emit('played_card', card);
-                console.log('Played card: ' + card);
-                break;
-            }
-        }
+        let room = findRoomByPlayer(socket.id);
+
+        socket.to(room).emit('playerd_enemy_card', card);
+        console.log('Played card: ' + card);
     });
 });
 
@@ -74,3 +67,5 @@ var findRoomByPlayer = function (player) {
         }
     }
 }
+
+var getRandomPlayer = (room) => rooms[room].players[Math.floor(Math.random() * 2)];
