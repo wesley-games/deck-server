@@ -33,7 +33,7 @@ io.on('connection', function (socket) {
         console.log('Joined room: ' + socket.id + ' - ' + room);
 
         if (rooms[room].players.length === 2) {
-            rooms[room].deck = new Game.Deck();
+            rooms[room].game = new Game.Game();
             io.to(room).emit('started_game');
 
             let randomPlayer = getRandomPlayer(room);
@@ -44,7 +44,7 @@ io.on('connection', function (socket) {
     // EVENTS FOR GAME
     socket.on('draw_card', function (data) {
         let room = findRoomByPlayer(socket.id);
-        let card = rooms[room].deck.drawCard();
+        let card = rooms[room].game.drawCard();
 
         socket.emit('drawn_card', card);
         socket.to(room).emit('drawn_enemy_card');
@@ -54,8 +54,13 @@ io.on('connection', function (socket) {
     socket.on('play_card', function (card) {
         let room = findRoomByPlayer(socket.id);
 
-        socket.to(room).emit('playerd_enemy_card', card);
+        socket.to(room).emit('played_enemy_card', card);
         console.log('Played card: ' + card);
+
+        rooms[room].game.table[socket.id] = card;
+        if (Object.keys(rooms[room].game.table).lenth > 1) {
+            console.log('validar jogada');
+        }
     });
 });
 
