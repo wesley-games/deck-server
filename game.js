@@ -24,6 +24,12 @@ class Game {
         let value2 = values.indexOf(e2.slice(1));
         return value1 - value2;
     }
+
+    equalSuits(e1, e2) {
+        let suit1 = e1.slice(0, 1);
+        let suit2 = e2.slice(0, 1);
+        return suit1 === suit2;
+    }
 }
 
 module.exports = {

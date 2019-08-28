@@ -11,7 +11,9 @@ var io = socket(server);
 var rooms = {};
 
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({
+    extended: true
+}));
 
 app.get('/rooms', (req, res) => res.json(rooms));
 
@@ -23,7 +25,9 @@ io.on('connection', function (socket) {
     // Events for room
     socket.on('join_room', function (room) {
         if (!rooms.hasOwnProperty(room)) {
-            rooms[room] = { players: [] };
+            rooms[room] = {
+                players: []
+            };
             io.emit('created_room', room);
             console.log('Created room: ' + room);
         }
@@ -57,20 +61,33 @@ io.on('connection', function (socket) {
         socket.to(room).emit('played_enemy_card', card);
         console.log('Played card: ' + card);
 
-        rooms[room].game.table[socket.id] = card;
-        if (Object.keys(rooms[room].game.table).length == 1) {
+        if (Object.keys(rooms[room].game.table).length == 0) {
+            rooms[room].game.table[socket.id] = card;
             socket.to(room).emit('play_turn');
-        } else if (Object.keys(rooms[room].game.table).length == 2) {
+        } else if (Object.keys(rooms[room].game.table).length == 1) {
             // validar se a segunda carta jogada é do mesmo naipe da anterior
-
-            // descobre quem ganhou, limpa a mesa e envia as mensagens corretamente
             let game = rooms[room].game;
-            let orderedTurn = Object.entries(game.table).sort((a, b) => game.sortCards(a[1], b[1]));
-            game.table = {};
-            io.sockets.connected[orderedTurn[0][0]].emit('win_turn');
-            io.sockets.connected[orderedTurn[1][0]].emit('lose_turn');
+
+            let cardOnTable = game.table[Object.keys(game.table)]; // pega a carta jogada anteriormente
+            if (!game.equalSuits(cardOnTable, card)) {
+                socket.emit('wrong_card');
+                socket.to(room).emit('wrong_enemy_card');
+            } else {
+                rooms[room].game.table[socket.id] = card;
+                // descobre quem ganhou, limpa a mesa e envia as mensagens corretamente
+                let orderedTurn = Object.entries(game.table).sort((a, b) => game.sortCards(a[1], b[1]));
+                game.table = {};
+                io.sockets.connected[orderedTurn[0][0]].emit('win_turn');
+                io.sockets.connected[orderedTurn[1][0]].emit('lose_turn');
+            }
         }
     });
+
+    socket.on('win_game', function (data) {
+        let room = findRoomByPlayer(socket.id);
+
+        socket.to(room).emit('lose_game');
+    })
 });
 
 // UTIL FUNCTIONS
