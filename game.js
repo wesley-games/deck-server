@@ -1,5 +1,5 @@
 const suits = ['D', 'C', 'H', 'S']; // Diamonds, Clovers, Hearts, Spades
-const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+const values = ['A', 'K', 'Q', 'J', '10', '9', '8', '7', '6', '5', '4', '3', '2'];
 
 class Game {
 
@@ -17,6 +17,12 @@ class Game {
 
     drawCard() {
         return this.deck.shift();
+    }
+
+    sortCards(e1, e2) {
+        let value1 = values.indexOf(e1.slice(1));
+        let value2 = values.indexOf(e2.slice(1));
+        return value1 - value2;
     }
 }
 

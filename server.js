@@ -37,7 +37,7 @@ io.on('connection', function (socket) {
             io.to(room).emit('started_game');
 
             let randomPlayer = getRandomPlayer(room);
-            io.sockets.connected[randomPlayer].emit('start_player');
+            io.sockets.connected[randomPlayer].emit('play_turn');
         }
     });
 
@@ -58,8 +58,17 @@ io.on('connection', function (socket) {
         console.log('Played card: ' + card);
 
         rooms[room].game.table[socket.id] = card;
-        if (Object.keys(rooms[room].game.table).lenth > 1) {
-            console.log('validar jogada');
+        if (Object.keys(rooms[room].game.table).length == 1) {
+            socket.to(room).emit('play_turn');
+        } else if (Object.keys(rooms[room].game.table).length == 2) {
+            // validar se a segunda carta jogada é do mesmo naipe da anterior
+
+            // descobre quem ganhou, limpa a mesa e envia as mensagens corretamente
+            let game = rooms[room].game;
+            let orderedTurn = Object.entries(game.table).sort((a, b) => game.sortCards(a[1], b[1]));
+            game.table = {};
+            io.sockets.connected[orderedTurn[0][0]].emit('win_turn');
+            io.sockets.connected[orderedTurn[1][0]].emit('lose_turn');
         }
     });
 });
@@ -74,3 +83,16 @@ var findRoomByPlayer = function (player) {
 }
 
 var getRandomPlayer = (room) => rooms[room].players[Math.floor(Math.random() * 2)];
+
+
+// SOCKET.IO CHEATSHEET
+// Sending to the client
+// socket.emit('event', message);
+// Sending to all clients except sender
+// socket.broadcast.emit('event', message);
+// Sending to all clients in 'game' room except sender
+// socket.to(room).emit('event', message);
+// Sending to all clients in 'game' room, including sender
+// io.in(room).emit('event', message);
+// Sending to an client id
+// io.sockets.connected[socket.id].emit('event', message);
