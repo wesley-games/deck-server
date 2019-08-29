@@ -11,9 +11,7 @@ var io = socket(server);
 var rooms = {};
 
 app.use(express.json());
-app.use(express.urlencoded({
-    extended: true
-}));
+app.use(express.urlencoded({ extended: true }));
 
 app.get('/rooms', (req, res) => res.json(rooms));
 
@@ -25,9 +23,7 @@ io.on('connection', function (socket) {
     // Events for room
     socket.on('join_room', function (room) {
         if (!rooms.hasOwnProperty(room)) {
-            rooms[room] = {
-                players: []
-            };
+            rooms[room] = { players: [] };
             io.emit('created_room', room);
             console.log('Created room: ' + room);
         }
@@ -37,7 +33,7 @@ io.on('connection', function (socket) {
         console.log('Joined room: ' + socket.id + ' - ' + room);
 
         if (rooms[room].players.length === 2) {
-            rooms[room].game = new Game.Game();
+            rooms[room].game = new Game.Game(rooms[room].players[0], rooms[room].players[1]);
             io.to(room).emit('started_game');
 
             let randomPlayer = getRandomPlayer(room);
@@ -48,7 +44,7 @@ io.on('connection', function (socket) {
     // EVENTS FOR GAME
     socket.on('draw_card', function (data) {
         let room = findRoomByPlayer(socket.id);
-        let card = rooms[room].game.drawCard();
+        let card = rooms[room].game.drawCard(socket.id);
 
         socket.emit('drawn_card', card);
         socket.to(room).emit('drawn_enemy_card');
@@ -60,6 +56,8 @@ io.on('connection', function (socket) {
 
         socket.to(room).emit('played_enemy_card', card);
         console.log('Played card: ' + card);
+
+        let emptyHand = rooms[room].game.playCard(socket.id, card);
 
         if (Object.keys(rooms[room].game.table).length == 0) {
             rooms[room].game.table[socket.id] = card;
@@ -81,13 +79,13 @@ io.on('connection', function (socket) {
                 io.sockets.connected[orderedTurn[1][0]].emit('lose_turn');
             }
         }
+
+        if (emptyHand) {
+            let room = findRoomByPlayer(socket.id);
+            socket.emit('win_game');
+            socket.to(room).emit('lose_game');
+        }
     });
-
-    socket.on('win_game', function (data) {
-        let room = findRoomByPlayer(socket.id);
-
-        socket.to(room).emit('lose_game');
-    })
 });
 
 // UTIL FUNCTIONS

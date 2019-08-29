@@ -3,8 +3,11 @@ const values = ['A', 'K', 'Q', 'J', '10', '9', '8', '7', '6', '5', '4', '3', '2'
 
 class Game {
 
-    constructor() {
+    constructor(player1, player2) {
         this.table = {};
+        this.hands = {};
+        this.hands[player1] = [];
+        this.hands[player2] = [];
         this.deck = suits.reduce((sacc, sval) => {
             let varr = values.reduce((vacc, vval) => {
                 vacc.push(sval + vval);
@@ -15,8 +18,16 @@ class Game {
         }, []).sort(() => .5 - Math.random());
     }
 
-    drawCard() {
-        return this.deck.shift();
+    drawCard(player) {
+        let card = this.deck.shift();
+        this.hands[player].push(card);
+        return card;
+    }
+
+    // retorna se o jogador não tiver mais cartas na mão
+    playCard(player, card) {
+        this.hands[player].splice(this.hands[player].indexOf(card), 1);
+        return this.hands[player].length === 0;
     }
 
     sortCards(e1, e2) {
