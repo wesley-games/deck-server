@@ -21,6 +21,25 @@ io.on('connection', function (socket) {
     console.log('Connected socket: ' + socket.id);
 
     // Events for room
+    var leaving_room = function () {
+        socket.broadcast.emit('disconnected_play')
+        
+        let room = findRoomByPlayer(socket.id);
+        if (rooms[room] && rooms[room].players) {
+            rooms[room].players.splice(rooms[room].players.indexOf(socket.id), 1);
+            rooms[room].game = {};
+        }
+        console.log('Disconnect room: ' + socket.id);
+    }
+
+    socket.on('leave_room', function (data) {
+        leaving_room();
+    });
+
+    socket.on('disconnect', function (data) {
+        leaving_room();
+    })
+
     socket.on('join_room', function (room) {
         if (!rooms.hasOwnProperty(room)) {
             rooms[room] = { players: [] };
@@ -41,14 +60,30 @@ io.on('connection', function (socket) {
         }
     });
 
+    socket.on('restart_game', function (data) {
+        let room = findRoomByPlayer(socket.id);
+        rooms[room].game = new Game.Game(rooms[room].players[0], rooms[room].players[1]);
+        io.to(room).emit('started_game');
+
+        let randomPlayer = getRandomPlayer(room);
+        io.sockets.connected[randomPlayer].emit('play_turn');
+    });
+
     // EVENTS FOR GAME
     socket.on('draw_card', function (data) {
         let room = findRoomByPlayer(socket.id);
         let card = rooms[room].game.drawCard(socket.id);
 
-        socket.emit('drawn_card', card);
-        socket.to(room).emit('drawn_enemy_card');
-        console.log('Drawn card: ' + card);
+        if (typeof card !== 'undefined') {
+            socket.emit('drawn_card', card);
+            socket.to(room).emit('drawn_enemy_card');
+            console.log('Drawn card: ' + card);
+        } else {
+            rooms[room].game.table = {};
+            socket.to(room).emit('win_turn');
+            socket.emit('lose_turn');
+            console.log('No more cards');
+        }
     });
 
     socket.on('play_card', function (card) {

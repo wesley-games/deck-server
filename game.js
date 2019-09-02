@@ -20,7 +20,9 @@ class Game {
 
     drawCard(player) {
         let card = this.deck.shift();
-        this.hands[player].push(card);
+        if (typeof card !== 'undefined') {
+            this.hands[player].push(card);
+        }
         return card;
     }
 
