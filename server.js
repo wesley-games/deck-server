@@ -7,9 +7,6 @@ var app = express();
 var server = http.Server(app);
 var io = socket(server);
 
-// armazena cada room criada e os clients conectadas nelas
-var rooms = {};
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -17,9 +14,9 @@ app.get('/rooms', (req, res) => res.json(rooms));
 
 server.listen(process.env.PORT || 5000, () => console.log('Starting server on port 5000.'));
 
-io.on('connection', function (socket) {
-    console.log('Connected socket: ' + socket.id);
+var rooms = {};
 
+io.on('connection', function (socket) {
     // Events for room
     var leaving_room = function () {
         socket.broadcast.emit('disconnected_play')
@@ -29,7 +26,6 @@ io.on('connection', function (socket) {
             rooms[room].players.splice(rooms[room].players.indexOf(socket.id), 1);
             rooms[room].game = {};
         }
-        console.log('Disconnect room: ' + socket.id);
     }
 
     socket.on('leave_room', function (data) {
@@ -44,12 +40,10 @@ io.on('connection', function (socket) {
         if (!rooms.hasOwnProperty(room)) {
             rooms[room] = { players: [] };
             io.emit('created_room', room);
-            console.log('Created room: ' + room);
         }
         rooms[room].players.push(socket.id);
         socket.join(room);
         io.emit('joined_room', socket.id);
-        console.log('Joined room: ' + socket.id + ' - ' + room);
 
         if (rooms[room].players.length === 2) {
             rooms[room].game = new Game.Game(rooms[room].players[0], rooms[room].players[1]);
@@ -77,12 +71,10 @@ io.on('connection', function (socket) {
         if (typeof card !== 'undefined') {
             socket.emit('drawn_card', card);
             socket.to(room).emit('drawn_enemy_card');
-            console.log('Drawn card: ' + card);
         } else {
             rooms[room].game.table = {};
             socket.to(room).emit('win_turn');
             socket.emit('lose_turn');
-            console.log('No more cards');
         }
     });
 
@@ -90,7 +82,6 @@ io.on('connection', function (socket) {
         let room = findRoomByPlayer(socket.id);
 
         socket.to(room).emit('played_enemy_card', card);
-        console.log('Played card: ' + card);
 
         let emptyHand = rooms[room].game.playCard(socket.id, card);
 
@@ -124,14 +115,7 @@ io.on('connection', function (socket) {
 });
 
 // UTIL FUNCTIONS
-var findRoomByPlayer = function (player) {
-    for (var room in rooms) {
-        if (rooms[room].players.includes(player)) {
-            return room;
-        }
-    }
-}
-
+var findRoomByPlayer = (player) => Object.entries(rooms).find(r => r[1].includes(player))[0];
 var getRandomPlayer = (room) => rooms[room].players[Math.floor(Math.random() * 2)];
 
 
