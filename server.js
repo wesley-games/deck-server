@@ -56,11 +56,13 @@ io.on('connection', function (socket) {
 
     socket.on('restart_game', function (data) {
         let room = findRoomByPlayer(socket.id);
-        rooms[room].game = new Game.Game(rooms[room].players[0], rooms[room].players[1]);
-        io.to(room).emit('started_game');
-
-        let randomPlayer = getRandomPlayer(room);
-        io.sockets.connected[randomPlayer].emit('play_turn');
+        if (room) {
+            rooms[room].game = new Game.Game(rooms[room].players[0], rooms[room].players[1]);
+            io.to(room).emit('started_game');
+    
+            let randomPlayer = getRandomPlayer(room);
+            io.sockets.connected[randomPlayer].emit('play_turn');
+        }
     });
 
     // EVENTS FOR GAME
@@ -115,7 +117,13 @@ io.on('connection', function (socket) {
 });
 
 // UTIL FUNCTIONS
-var findRoomByPlayer = (player) => Object.entries(rooms).find(r => r[1].includes(player))[0];
+var findRoomByPlayer = function (player) {
+    for (var room in rooms) {
+        if (rooms[room].players.includes(player)) {
+            return room;
+        }
+    }
+}
 var getRandomPlayer = (room) => rooms[room].players[Math.floor(Math.random() * 2)];
 
 
